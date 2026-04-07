@@ -1,0 +1,29 @@
+.panel {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.panel h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.fileInput {
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.btn {
+  align-self: flex-start;
+}

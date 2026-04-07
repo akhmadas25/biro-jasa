@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPERADMIN
+  STAFF
+  USER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  password      String?
+  role          Role      @default(USER)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  orders        Order[]   @relation("UserOrders")
+  assignedTasks Order[]   @relation("StaffTasks")
+  messages      Message[]
+}
+
+enum OrderStatus {
+  PENDING              // Draft / Baru awal isi form basic
+  WAITING_ESTIMATE     // Menunggu admin memberikan estimasi
+  NEGOTIATING          // Sedang tawar menawar
+  DEAL                 // Harga disepakati, menunggu pembayaran
+  PAYMENT_PENDING      // Bukti transfer belum diupload
+  PAYMENT_VERIFY       // User sudah upload, tunggu admin approve
+  PAID                 // Pembayaran di-approve admin
+  WAITING_DOCUMENTS    // Menunggu user upload berkas
+  DOCUMENTS_RECEIVED   // Berkas digital diterima
+  ASSIGNED_TO_STAFF    // Diserahkan ke staff lapangan
+  PROCESSING           // Staff sedang memproses berkas fisik
+  STAFF_COMPLETED      // Staff selesai kerjakan
+  READY_FOR_DELIVERY   // Tersedia untuk diambil / dikirim
+  COMPLETED            // Selesai
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING_VERIFICATION
+  PAID
+}
+
+enum DeliveryMethod {
+  PICKUP
+  DELIVERY
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  slug        String   @unique
+  price       Float?
+  isActive    Boolean  @default(true)
+  orders      Order[]
+}
+
+model Order {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation("UserOrders", fields: [userId], references: [id])
+  serviceId       String
+  service         Service        @relation(fields: [serviceId], references: [id])
+  
+  formDetails     Json?          // Data form basic spesifik per layanan
+  estimatedPrice  Float?         // Harga estimasi awal dari admin
+  agreedPrice     Float?         // Harga setelah deal/nego
+  
+  status          OrderStatus    @default(PENDING)
+  
+  paymentProofUrl String?        // Lokasi file gambar bukti transfer
+  paymentStatus   PaymentStatus  @default(UNPAID)
+  
+  documentUrls    Json?          // Berkas digital (array file paths: scan/pdf)
+  
+  staffId         String?        // ID Staff lapangan (jika sudah di-assign)
+  staff           User?          @relation("StaffTasks", fields: [staffId], references: [id])
+  
+  deliveryMethod  DeliveryMethod?
+  deliveryAddress String?        @db.Text
+  
+  paymentInstructions String?    @db.Text
+  
+  messages        Message[]      // Relasi ruang chat
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+}
