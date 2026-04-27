@@ -15,13 +15,21 @@ export async function GET() {
       where: {
         messages: { some: {} } // Hanya order yang ada pesannya
       },
-      include: {
+      select: {
+        id: true,
+        status: true,
+        updatedAt: true,
         user: { select: { id: true, name: true, email: true } },
         service: { select: { name: true } },
         messages: {
           orderBy: { createdAt: 'desc' },
           take: 1,
-          include: { user: { select: { name: true } } }
+          select: {
+            content: true,
+            imageUrl: true,
+            createdAt: true,
+            user: { select: { name: true } }
+          }
         }
       },
       orderBy: { updatedAt: 'desc' }

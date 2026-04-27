@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button/Button';
 import Input from '@/components/ui/Input/Input';
 import Select from '@/components/ui/Select/Select';
+import useSWR from 'swr';
+
+const fetcher = url => fetch(url).then(res => res.json());
 
 export default function ServiceFormPage({ params }) {
   const router = useRouter();
@@ -14,14 +17,35 @@ export default function ServiceFormPage({ params }) {
     phoneNumber: '',
     address: '',
     serviceTypePriority: 'standard',
-    notes: ''
+    notes: '',
+    subServiceType: '', // For STNK (pajak tahunan / 5 tahunan) and SIM (baru / perpanjang)
+    documents: {} // To store base64 strings
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Ideally, serviceId is fetched from params or DB, here we mock simple extraction
   React.useEffect(() => {
     params.then(p => setServiceId(p.id));
   }, [params]);
+
+  const { data: services } = useSWR('/api/services', fetcher);
+  const currentService = services?.find(s => s.id === serviceId);
+
+  const handleFileChange = (e, fieldName) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          documents: {
+            ...prev.documents,
+            [fieldName]: reader.result
+          }
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -33,12 +57,14 @@ export default function ServiceFormPage({ params }) {
     setIsSubmitting(true);
 
     try {
+      const { documents, ...cleanFormDetails } = formData;
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           serviceId: serviceId, // Must match an ID in DB in fully working app
-          formDetails: formData
+          formDetails: cleanFormDetails,
+          documentUrls: documents
         })
       });
       
@@ -82,16 +108,87 @@ export default function ServiceFormPage({ params }) {
             required
           />
 
-          <Select 
-            id="serviceTypePriority"
-            label="Prioritas Layanan"
-            value={formData.serviceTypePriority}
-            onChange={handleChange}
-            options={[
-              { label: 'Standar (Sesuai antrean)', value: 'standard' },
-              { label: 'Ekspres (Lebih Cepat)', value: 'express' }
-            ]}
-          />
+          {currentService?.slug === 'stnk' && (
+            <Select 
+              id="subServiceType"
+              label="Jenis Layanan STNK"
+              value={formData.subServiceType}
+              onChange={handleChange}
+              options={[
+                { label: 'Pilih Jenis', value: '' },
+                { label: 'Pajak Tahunan', value: 'pajak_tahunan' },
+                { label: 'Pajak 5 Tahunan', value: 'pajak_5_tahunan' }
+              ]}
+              required
+            />
+          )}
+
+          {currentService?.slug === 'sim' && (
+            <Select 
+              id="subServiceType"
+              label="Jenis Layanan SIM"
+              value={formData.subServiceType}
+              onChange={handleChange}
+              options={[
+                { label: 'Pilih Jenis', value: '' },
+                { label: 'SIM Baru', value: 'sim_baru' },
+                { label: 'Perpanjang SIM', value: 'perpanjang_sim' }
+              ]}
+              required
+            />
+          )}
+
+          {/* Dynamic Document Fields */}
+          {currentService?.slug === 'stnk' && formData.subServiceType === 'pajak_tahunan' && (
+            <div className="mb-3">
+              <label className="form-label font-medium mb-1 block">Foto STNK</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_stnk')} required />
+              <label className="form-label font-medium mb-1 block mt-2">Foto KTP</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_ktp')} required />
+            </div>
+          )}
+
+          {(currentService?.slug === 'stnk' && formData.subServiceType === 'pajak_5_tahunan') || currentService?.slug === 'ganti-plat' ? (
+            <div className="mb-3">
+              <label className="form-label font-medium mb-1 block">Foto STNK</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_stnk')} required />
+              <label className="form-label font-medium mb-1 block mt-2">Foto KTP</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_ktp')} required />
+              <label className="form-label font-medium mb-1 block mt-2">Foto BPKB</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_bpkb')} required />
+              <label className="form-label font-medium mb-1 block mt-2">Gesekan Nomor Rangka & Mesin</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'gesekan_nomor')} required />
+            </div>
+          ) : null}
+
+          {(currentService?.slug === 'balik-nama' || currentService?.slug === 'mutasi') && (
+            <div className="mb-3">
+              <label className="form-label font-medium mb-1 block">Foto STNK</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_stnk')} required />
+              <label className="form-label font-medium mb-1 block mt-2">Foto KTP</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_ktp')} required />
+              <label className="form-label font-medium mb-1 block mt-2">Foto BPKB</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_bpkb')} required />
+              <label className="form-label font-medium mb-1 block mt-2">Gesekan Nomor Rangka & Mesin</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'gesekan_nomor')} required />
+              <label className="form-label font-medium mb-1 block mt-2">Foto Kendaraan 4 Sisi</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_kendaraan_4sisi')} required />
+            </div>
+          )}
+
+          {currentService?.slug === 'sim' && formData.subServiceType === 'sim_baru' && (
+            <div className="mb-3">
+              <label className="form-label font-medium mb-1 block">Foto KTP</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_ktp')} required />
+            </div>
+          )}
+
+          {currentService?.slug === 'sim' && formData.subServiceType === 'perpanjang_sim' && (
+            <div className="mb-3">
+              <label className="form-label font-medium mb-1 block">Foto SIM Lama</label>
+              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_sim_lama')} required />
+            </div>
+          )}
 
           <Input 
             id="notes"

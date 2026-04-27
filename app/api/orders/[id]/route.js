@@ -13,12 +13,31 @@ export async function GET(request, { params }) {
     const { id } = await params;
     const order = await prisma.order.findUnique({
       where: { id },
-      include: { 
-        service: true, 
-        user: true, 
-        staff: true,
+      select: {
+        id: true,
+        userId: true,
+        serviceId: true,
+        formDetails: true,
+        status: true,
+        estimatedPrice: true,
+        estimatedBreakdown: true,
+        agreedPrice: true,
+        fixedPrice: true,
+        fixedBreakdown: true,
+        paymentProofUrl: true,
+        paymentStatus: true,
+        paymentInstructions: true,
+        deliveryMethod: true,
+        deliveryAddress: true,
+        documentUrls: true, // Wajib ada untuk lihat berkas di detail
+        staffId: true,
+        createdAt: true,
+        updatedAt: true,
+        service: true,
+        user: { select: { id: true, name: true, email: true, role: true } },
+        staff: { select: { id: true, name: true, email: true } },
         messages: {
-          include: { user: true },
+          include: { user: { select: { id: true, name: true, role: true } } },
           orderBy: { createdAt: 'asc' }
         }
       },
@@ -68,6 +87,6 @@ export async function PATCH(request, { params }) {
     return NextResponse.json(order);
   } catch (error) {
     console.error("Update order error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

@@ -12,7 +12,7 @@ export default function Navbar() {
           <div className="bg-warning-subtle px-3 py-1 rounded-3 me-2 d-flex align-items-center justify-content-center">
             <i className="bi bi-shield-check text-warning"></i>
           </div>
-          <span>BIRO <span className="text-warning">JASA</span></span>
+          <span>CV <span className="text-warning">BS</span><span className='ms-2 text-warning'>JASA</span></span>
         </Link>
         <button className="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
           <span className="navbar-toggler-icon"></span>

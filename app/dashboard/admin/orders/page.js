@@ -25,6 +25,7 @@ export default function AdminOrdersPage() {
             <tr>
               <th style={styles.th}>ID Pesanan</th>
               <th style={styles.th}>Layanan</th>
+              <th style={styles.th}>Sub Layanan</th>
               <th style={styles.th}>Pelanggan</th>
               <th style={styles.th}>Status</th>
               <th style={styles.th}>Aksi</th>
@@ -37,6 +38,13 @@ export default function AdminOrdersPage() {
                   <span style={styles.idBadge}>{order.id.slice(-6).toUpperCase()}</span>
                 </td>
                 <td style={styles.td}><strong>{order.service?.name}</strong></td>
+                <td style={styles.td}>
+                  {order.formDetails?.subServiceType ? (
+                    <span style={styles.subServiceBadge}>
+                      {order.formDetails.subServiceType.replace(/_/g, ' ').toUpperCase()}
+                    </span>
+                  ) : '-'}
+                </td>
                 <td style={styles.td}>{order.user?.name || order.user?.email}</td>
                 <td style={styles.td}>
                   <span style={{...styles.statusBadge, ...(statusColors[order.status] || statusColors.default)}}>
@@ -52,7 +60,7 @@ export default function AdminOrdersPage() {
             ))}
             {orders.length === 0 && (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>Tidak ada pesanan masuk.</td>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>Tidak ada pesanan masuk.</td>
               </tr>
             )}
           </tbody>
@@ -85,6 +93,7 @@ const styles = {
   td: { padding: '1rem 1.5rem', borderBottom: '1px solid #e5e7eb', color: '#4b5563' },
   tr: { transition: 'background-color 0.2s ease', ':hover': { backgroundColor: '#f9fafb' } },
   idBadge: { background: '#f3f4f6', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', fontFamily: 'monospace' },
+  subServiceBadge: { background: '#e5e7eb', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '500', color: '#4b5563' },
   statusBadge: { padding: '0.3rem 0.8rem', borderRadius: '99px', fontSize: '0.85rem', fontWeight: '500' },
   actionBtn: { textDecoration: 'none', background: '#111827', color: '#fff', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.875rem', fontWeight: '500', transition: 'all 0.2s ease' }
 };

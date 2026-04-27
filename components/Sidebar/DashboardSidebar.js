@@ -47,6 +47,7 @@ export default function DashboardSidebar({ isCollapsed, onToggle }) {
             <NavItem href="/dashboard/admin/chats" icon="bi-chat-dots" label="Pesan / Chat" />
             <NavItem href="/dashboard/admin/services" icon="bi-gear" label="Kelola Layanan" />
             <NavItem href="/dashboard/admin/users" icon="bi-people" label="Manajemen User" />
+            <NavItem href="/dashboard/admin/reports" icon="bi-file-earmark-bar-graph" label="Laporan Keuangan" />
           </>
         )}
 

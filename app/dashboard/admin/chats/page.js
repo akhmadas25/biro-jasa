@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import Button from '@/components/ui/Button/Button';
 import Input from '@/components/ui/Input/Input';
+import ImageModal from '@/components/ui/ImageModal';
 
 const fetcher = url => fetch(url).then(res => res.json());
 
@@ -13,7 +14,9 @@ export default function AdminChatsPage() {
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [modal, setModal] = useState({ show: false, img: '', title: '' });
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Poll list of chats
   const { data: chats, mutate: mutateChats } = useSWR('/api/admin/chats', fetcher, { refreshInterval: 5000 });
@@ -24,6 +27,8 @@ export default function AdminChatsPage() {
     fetcher,
     { refreshInterval: 1500 }
   );
+
+  const chatsList = Array.isArray(chats) ? chats : [];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -37,22 +42,41 @@ export default function AdminChatsPage() {
     "Ada kendala pada berkas Anda, mohon hubungi kami kembali."
   ];
 
-  const sendMessage = async (content) => {
+  const sendMessage = async (payload) => {
     if (!selectedOrderId) return;
-    const textToSend = typeof content === 'string' ? content : message;
-    if (!textToSend.trim()) return;
+    
+    let body = {};
+    if (typeof payload === 'string') {
+      body = { content: payload };
+    } else if (payload?.imageUrl) {
+      body = { imageUrl: payload.imageUrl };
+    } else {
+      if (!message.trim()) return;
+      body = { content: message };
+    }
 
     setIsSending(true);
     await fetch(`/api/orders/${selectedOrderId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: textToSend })
+      body: JSON.stringify(body)
     });
 
-    if (typeof content !== 'string') setMessage('');
+    if (typeof payload !== 'string' && !payload?.imageUrl) setMessage('');
     setIsSending(false);
     mutateCurrentOrder();
     mutateChats();
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        sendMessage({ imageUrl: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -61,7 +85,7 @@ export default function AdminChatsPage() {
       <div className="border-end d-flex flex-column bg-white flex-shrink-0" style={{ width: '280px' }}>
         <h3 className="p-4 m-0 h5 fw-bold border-bottom">Inbox Chat</h3>
         <div className="flex-grow-1 overflow-auto">
-          {chats?.map(chat => (
+          {chatsList.map(chat => (
             <div 
               key={chat.id} 
               onClick={() => setSelectedOrderId(chat.id)}
@@ -75,12 +99,20 @@ export default function AdminChatsPage() {
                 <span className="badge bg-primary-subtle text-primary x-small" style={{ fontSize: '0.7rem' }}>{chat.service?.name}</span>
               </div>
               <p className="text-secondary small mb-1 text-truncate">
-                {chat.messages?.[0]?.content}
+                {chat.messages?.[0]?.imageUrl ? (
+                  <span className="text-primary italic"><i className="bi bi-image me-1"></i> [Gambar]</span>
+                ) : (
+                  chat.messages?.[0]?.content || "Tidak ada pesan"
+                )}
               </p>
               <span className="badge bg-light text-secondary border small">{chat.status}</span>
             </div>
           ))}
-          {chats?.length === 0 && <p className="p-4 text-secondary small">Belum ada chat aktif.</p>}
+          {chatsList.length === 0 && (
+            <p className="p-4 text-center text-secondary small opacity-50 italic">
+              {chats?.error ? 'Gagal memuat chat' : 'Belum ada chat aktif.'}
+            </p>
+          )}
         </div>
       </div>
 
@@ -105,9 +137,18 @@ export default function AdminChatsPage() {
                       style={{ maxWidth: '75%' }}
                     >
                       <small className={`d-block mb-1 fw-bold ${isMe ? 'text-white-50' : 'text-primary'}`} style={{ fontSize: '0.65rem' }}>
-                        {isMe ? 'Anda (Admin)' : msg.user?.name}
+                        {isMe ? 'Anda (Admin)' : (msg.user?.role === 'STAFF' ? 'Staff Lapangan' : msg.user?.name)}
                       </small>
-                      {msg.content}
+                      {msg.imageUrl && (
+                        <div 
+                          className="mb-2 rounded overflow-hidden cursor-pointer shadow-sm border border-white-50 bg-white" 
+                          style={{ maxWidth: '200px' }}
+                          onClick={() => setModal({ show: true, img: msg.imageUrl, title: 'Gambar Chat' })}
+                        >
+                          <img src={msg.imageUrl} alt="chat" className="img-fluid" />
+                        </div>
+                      )}
+                      {msg.content && <div>{msg.content}</div>}
                     </div>
                   </div>
                 );
@@ -129,7 +170,23 @@ export default function AdminChatsPage() {
                 ))}
               </div>
 
-              <form onSubmit={(e) => e.preventDefault()} className="d-flex gap-3 align-items-center">
+              <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="d-flex gap-2 align-items-center">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  onChange={handleImageUpload}
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-outline-secondary rounded-circle p-2" 
+                  onClick={() => fileInputRef.current.click()}
+                  disabled={isSending}
+                  style={{ width: '40px', height: '40px', flexShrink: 0 }}
+                >
+                  <i className="bi bi-camera"></i>
+                </button>
                 <div className="flex-grow-1">
                   <Input
                     value={message}
@@ -139,8 +196,8 @@ export default function AdminChatsPage() {
                     style={{ marginBottom: 0 }}
                   />
                 </div>
-                <Button onClick={() => sendMessage()} isLoading={isSending} className="m-0">
-                  <i className="bi bi-send-fill"></i>
+                <Button type="submit" isLoading={isSending} className="m-0 py-2 px-3">
+                   <i className="bi bi-send-fill text-white"></i>
                 </Button>
               </form>
             </div>
@@ -152,6 +209,13 @@ export default function AdminChatsPage() {
           </div>
         )}
       </div>
+
+      <ImageModal 
+        show={modal.show} 
+        onClose={() => setModal({ ...modal, show: false })} 
+        imageUrl={modal.img} 
+        title={modal.title} 
+      />
     </div>
   );
 }

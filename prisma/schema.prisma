@@ -74,7 +74,11 @@ model Order {
   
   formDetails     Json?          // Data form basic spesifik per layanan
   estimatedPrice  Float?         // Harga estimasi awal dari admin
-  agreedPrice     Float?         // Harga setelah deal/nego
+  estimatedBreakdown Json?       // Rincian estimasi (array of items)
+  
+  agreedPrice     Float?         // Harga setelah deal (re-used as fixedPrice)
+  fixedPrice      Float?         // Harga riil setelah proses
+  fixedBreakdown  Json?          // Rincian riil (array of items)
   
   status          OrderStatus    @default(PENDING)
   
@@ -103,6 +107,7 @@ model Message {
   order     Order    @relation(fields: [orderId], references: [id])
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  content   String   @db.Text
+  content   String?  @db.Text
+  imageUrl  String?  // Untuk lampiran gambar di chat
   createdAt DateTime @default(now())
 }
