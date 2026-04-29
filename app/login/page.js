@@ -41,10 +41,13 @@ export default function LoginPage() {
           <div className="w-100" style={{ maxWidth: '400px' }}>
             {/* Branding Logo */}
             <Link href="/" className="d-flex align-items-center text-decoration-none mb-5 justify-content-center justify-content-lg-start">
-              <div className="bg-warning-subtle px-3 py-1 rounded-3 me-2">
-                <i className="bi bi-shield-check text-warning fs-4"></i>
-              </div>
-              <span className="fw-bold fs-4 text-dark">BIRO <span className="text-warning">JASA</span></span>
+              <img 
+                src="/logo.png" 
+                alt="CV BS Jasa Logo" 
+                height="40" 
+                className="me-2"
+              />
+              <span className="fw-bold fs-4 text-dark">CV <span className="text-warning">BS JASA</span></span>
             </Link>
 
             <div className="mb-4 text-center text-lg-start">

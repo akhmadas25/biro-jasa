@@ -9,10 +9,13 @@ export default function Navbar() {
     <nav className="navbar navbar-expand-lg navbar-light bg-white sticky-top py-3 border-bottom border-light">
       <div className="container">
         <Link className="navbar-brand fw-bold fs-4 d-flex align-items-center" href="/">
-          <div className="bg-warning-subtle px-3 py-1 rounded-3 me-2 d-flex align-items-center justify-content-center">
-            <i className="bi bi-shield-check text-warning"></i>
-          </div>
-          <span>CV <span className="text-warning">BS</span><span className='ms-2 text-warning'>JASA</span></span>
+          <img 
+            src="/logo.png" 
+            alt="CV BS Jasa Logo" 
+            height="40" 
+            className="me-2"
+          />
+          <span>CV <span className="text-warning">BS JASA</span></span>
         </Link>
         <button className="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
           <span className="navbar-toggler-icon"></span>

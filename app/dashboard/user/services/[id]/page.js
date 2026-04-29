@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button/Button';
 import Input from '@/components/ui/Input/Input';
 import Select from '@/components/ui/Select/Select';
 import useSWR from 'swr';
+
+import { SERVICE_FORM_CONFIG } from '@/app/dashboard/user/services/[id]/constants';
+import { DocumentFields } from '@/app/dashboard/user/services/[id]/components';
 
 const fetcher = url => fetch(url).then(res => res.json());
 
@@ -18,12 +21,12 @@ export default function ServiceFormPage({ params }) {
     address: '',
     serviceTypePriority: 'standard',
     notes: '',
-    subServiceType: '', // For STNK (pajak tahunan / 5 tahunan) and SIM (baru / perpanjang)
-    documents: {} // To store base64 strings
+    subServiceType: '',
+    documents: {}
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     params.then(p => setServiceId(p.id));
   }, [params]);
 
@@ -37,10 +40,7 @@ export default function ServiceFormPage({ params }) {
       reader.onloadend = () => {
         setFormData(prev => ({
           ...prev,
-          documents: {
-            ...prev.documents,
-            [fieldName]: reader.result
-          }
+          documents: { ...prev.documents, [fieldName]: reader.result }
         }));
       };
       reader.readAsDataURL(file);
@@ -55,26 +55,16 @@ export default function ServiceFormPage({ params }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
       const { documents, ...cleanFormDetails } = formData;
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          serviceId: serviceId, // Must match an ID in DB in fully working app
-          formDetails: cleanFormDetails,
-          documentUrls: documents
-        })
+        body: JSON.stringify({ serviceId: serviceId, formDetails: cleanFormDetails, documentUrls: documents })
       });
-      
       const order = await res.json();
-      if (res.ok) {
-        // Redirect to chat/negotiation area
-        router.push(`/dashboard/user/orders/${order.id}`);
-      } else {
-        alert(order.error || 'Terjadi kesalahan.');
-      }
+      if (res.ok) router.push(`/dashboard/user/orders/${order.id}`);
+      else alert(order.error || 'Terjadi kesalahan.');
     } catch (err) {
       console.error(err);
     } finally {
@@ -83,166 +73,40 @@ export default function ServiceFormPage({ params }) {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.glassCard}>
-        <h1 style={styles.title}>Lengkapi Data Formulir</h1>
-        <p style={styles.subtitle}>Berikan detail dasar agar Admin dapat memberikan estimasi harga yang akurat.</p>
-        
+    <div className="container py-4 py-md-5 d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
+      <div className="card shadow-sm border-0 rounded-4 p-4 p-md-5 bg-white-70 backdrop-blur" style={{ maxWidth: '600px', width: '100%' }}>
+        <h2 className="fw-bold mb-2 text-center text-dark h4 h2-md">{SERVICE_FORM_CONFIG.TITLE}</h2>
+        <p className="text-secondary text-center small mb-4">{SERVICE_FORM_CONFIG.SUBTITLE}</p>
+
         <form onSubmit={handleSubmit}>
-          <Input 
-            id="fullName"
-            label="Nama Lengkap"
-            placeholder="Masukkan nama sesuai indentitas"
-            value={formData.fullName}
-            onChange={handleChange}
-            required
-          />
-          
-          <Input 
-            id="phoneNumber"
-            label="Nomor WhatsApp"
-            type="tel"
-            placeholder="0812xxxxxx"
-            value={formData.phoneNumber}
-            onChange={handleChange}
-            required
-          />
+          <Input id="fullName" label={SERVICE_FORM_CONFIG.LABELS.NAME} placeholder="Contoh: Budi Santoso" value={formData.fullName} onChange={handleChange} required />
+          <Input id="phoneNumber" label={SERVICE_FORM_CONFIG.LABELS.PHONE} type="tel" placeholder="0812xxxxxx" value={formData.phoneNumber} onChange={handleChange} required />
 
           {currentService?.slug === 'stnk' && (
-            <Select 
-              id="subServiceType"
-              label="Jenis Layanan STNK"
-              value={formData.subServiceType}
-              onChange={handleChange}
-              options={[
-                { label: 'Pilih Jenis', value: '' },
-                { label: 'Pajak Tahunan', value: 'pajak_tahunan' },
-                { label: 'Pajak 5 Tahunan', value: 'pajak_5_tahunan' }
-              ]}
-              required
-            />
+            <Select id="subServiceType" label="Pilih Jenis Pajak" value={formData.subServiceType} onChange={handleChange}
+              options={[{ label: 'Pilih...', value: '' }, { label: 'Pajak Tahunan', value: 'pajak_tahunan' }, { label: 'Pajak 5 Tahunan', value: 'pajak_5_tahunan' }]} required />
           )}
 
           {currentService?.slug === 'sim' && (
-            <Select 
-              id="subServiceType"
-              label="Jenis Layanan SIM"
-              value={formData.subServiceType}
-              onChange={handleChange}
-              options={[
-                { label: 'Pilih Jenis', value: '' },
-                { label: 'SIM Baru', value: 'sim_baru' },
-                { label: 'Perpanjang SIM', value: 'perpanjang_sim' }
-              ]}
-              required
-            />
+            <Select id="subServiceType" label="Pilih Jenis SIM" value={formData.subServiceType} onChange={handleChange}
+              options={[{ label: 'Pilih...', value: '' }, { label: 'SIM Baru', value: 'sim_baru' }, { label: 'Perpanjang SIM', value: 'perpanjang_sim' }]} required />
           )}
 
-          {/* Dynamic Document Fields */}
-          {currentService?.slug === 'stnk' && formData.subServiceType === 'pajak_tahunan' && (
-            <div className="mb-3">
-              <label className="form-label font-medium mb-1 block">Foto STNK</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_stnk')} required />
-              <label className="form-label font-medium mb-1 block mt-2">Foto KTP</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_ktp')} required />
-            </div>
-          )}
-
-          {(currentService?.slug === 'stnk' && formData.subServiceType === 'pajak_5_tahunan') || currentService?.slug === 'ganti-plat' ? (
-            <div className="mb-3">
-              <label className="form-label font-medium mb-1 block">Foto STNK</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_stnk')} required />
-              <label className="form-label font-medium mb-1 block mt-2">Foto KTP</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_ktp')} required />
-              <label className="form-label font-medium mb-1 block mt-2">Foto BPKB</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_bpkb')} required />
-              <label className="form-label font-medium mb-1 block mt-2">Gesekan Nomor Rangka & Mesin</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'gesekan_nomor')} required />
-            </div>
-          ) : null}
-
-          {(currentService?.slug === 'balik-nama' || currentService?.slug === 'mutasi') && (
-            <div className="mb-3">
-              <label className="form-label font-medium mb-1 block">Foto STNK</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_stnk')} required />
-              <label className="form-label font-medium mb-1 block mt-2">Foto KTP</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_ktp')} required />
-              <label className="form-label font-medium mb-1 block mt-2">Foto BPKB</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_bpkb')} required />
-              <label className="form-label font-medium mb-1 block mt-2">Gesekan Nomor Rangka & Mesin</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'gesekan_nomor')} required />
-              <label className="form-label font-medium mb-1 block mt-2">Foto Kendaraan 4 Sisi</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_kendaraan_4sisi')} required />
-            </div>
-          )}
-
-          {currentService?.slug === 'sim' && formData.subServiceType === 'sim_baru' && (
-            <div className="mb-3">
-              <label className="form-label font-medium mb-1 block">Foto KTP</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_ktp')} required />
-            </div>
-          )}
-
-          {currentService?.slug === 'sim' && formData.subServiceType === 'perpanjang_sim' && (
-            <div className="mb-3">
-              <label className="form-label font-medium mb-1 block">Foto SIM Lama</label>
-              <input type="file" accept="image/*" className="form-control" onChange={(e) => handleFileChange(e, 'foto_sim_lama')} required />
-            </div>
-          )}
-
-          <Input 
-            id="notes"
-            label="Catatan Tambahan (Opsional)"
-            placeholder="Misal: Perpanjang STNK mobil tahun 2018..."
-            value={formData.notes}
-            onChange={handleChange}
+          <DocumentFields
+            slug={currentService?.slug}
+            subType={formData.subServiceType}
+            onFileChange={handleFileChange}
+            config={SERVICE_FORM_CONFIG}
+            documents={formData.documents}
           />
-          
-          <div style={styles.actions}>
-            <Button type="submit" isLoading={isSubmitting} className="w-full">
-              Kirim & Lanjut ke Negosiasi
-            </Button>
-          </div>
+
+          <Input id="notes" label={SERVICE_FORM_CONFIG.LABELS.NOTES} placeholder="Catatan tambahan..." value={formData.notes} onChange={handleChange} />
+
+          <Button type="submit" isLoading={isSubmitting} className="w-100 mt-3 fw-bold py-3">
+            {SERVICE_FORM_CONFIG.BUTTON_TEXT}
+          </Button>
         </form>
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '2rem',
-    background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)', // Sleek background
-  },
-  glassCard: {
-    width: '100%',
-    maxWidth: '500px',
-    background: 'rgba(255, 255, 255, 0.7)',
-    backdropFilter: 'blur(20px)',
-    borderRadius: '24px',
-    padding: '3rem 2rem',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
-    border: '1px solid rgba(255,255,255,0.4)',
-  },
-  title: {
-    fontSize: '1.8rem',
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: '0.5rem',
-    textAlign: 'center'
-  },
-  subtitle: {
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: '2.5rem',
-    fontSize: '0.95rem',
-    lineHeight: '1.5'
-  },
-  actions: {
-    marginTop: '2rem'
-  }
-};

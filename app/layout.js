@@ -4,7 +4,7 @@ import BootstrapClient from "@/components/BootstrapClient";
 import Providers from "@/components/Providers";
 
 export const metadata = {
-  title: "Biro Jasa Profesional - Layanan Cepat & Terpercaya",
+  title: "CV BS Jasa - Layanan Cepat & Terpercaya",
   description: "Solusi pengurusan STNK, Mutasi, Balik Nama, Ganti Plat, dan SIM dengan proses cepat dan aman.",
 };
 
