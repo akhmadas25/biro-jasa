@@ -66,10 +66,18 @@ export default function AdminChatsPage() {
   };
 
   return (
-    <div className="d-flex w-100 bg-white rounded-4 shadow-sm border overflow-hidden" style={{ height: 'calc(100vh - 5rem)' }}>
+    <div className="d-flex flex-column flex-lg-row w-100 bg-white rounded-4 shadow-sm border overflow-hidden" style={{ height: 'calc(100vh - 10rem)', minHeight: '500px' }}>
       {/* 1. Sidebar List */}
-      <div className="border-end d-flex flex-column bg-white flex-shrink-0" style={{ width: '280px' }}>
-        <h3 className="p-4 m-0 h5 fw-bold border-bottom">{CHAT_CONFIG.TITLE}</h3>
+      <div id="admin-chat-sidebar" className="border-end d-flex flex-column bg-white flex-shrink-0">
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media (min-width: 992px) {
+            #admin-chat-sidebar { width: 300px !important; }
+          }
+          @media (max-width: 991px) {
+            #admin-chat-sidebar { height: 35% !important; border-bottom: 1px solid #dee2e6; border-right: none !important; }
+          }
+        ` }} />
+        <h3 className="p-3 m-0 h6 fw-bold border-bottom text-uppercase text-secondary tracking-wider">{CHAT_CONFIG.TITLE}</h3>
         <div className="flex-grow-1 overflow-auto">
           {chatsList.map(chat => (
             <ChatListItem
@@ -86,17 +94,17 @@ export default function AdminChatsPage() {
       </div>
 
       {/* 2. Main Chat Area */}
-      <div className="flex-grow-1 d-flex flex-column bg-light-subtle">
+      <div className="flex-grow-1 d-flex flex-column bg-light-subtle overflow-hidden">
         {selectedOrderId ? (
           <>
-            <header className="p-3 px-4 border-bottom bg-white d-flex align-items-center justify-content-between">
+            <header className="p-3 px-4 border-bottom bg-white d-flex align-items-center justify-content-between flex-shrink-0">
               <div>
                 <h6 className="m-0 fw-bold">{currentOrder?.user?.name}</h6>
-                <small className="text-secondary small">Order ID: {selectedOrderId.slice(-6).toUpperCase()} • {currentOrder?.service?.name}</small>
+                <small className="text-secondary small" style={{ fontSize: '0.7rem' }}>Order ID: {selectedOrderId.slice(-6).toUpperCase()} • {currentOrder?.service?.name}</small>
               </div>
             </header>
 
-            <div className="flex-grow-1 p-4 overflow-auto d-flex flex-column gap-3">
+            <div className="flex-grow-1 p-3 p-md-4 overflow-auto d-flex flex-column gap-3">
               {currentOrder?.messages?.map(msg => (
                 <MessageBubble
                   key={msg.id}
@@ -109,20 +117,41 @@ export default function AdminChatsPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-4 bg-white border-top">
+            <div className="p-3 p-md-4 bg-white border-top flex-shrink-0">
               <QuickReplies replies={CHAT_CONFIG.QUICK_REPLIES} onReplyClick={(reply) => sendMessage(reply)} />
 
-              <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="d-flex gap-2 align-items-center">
+              <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="d-flex gap-2 align-items-center w-100">
                 <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleImageUpload} />
-                <button type="button" className="btn btn-outline-secondary rounded-circle p-2" onClick={() => fileInputRef.current.click()} disabled={isSending}>
-                  <i className="bi bi-camera"></i>
+                <button 
+                  type="button" 
+                  className="btn btn-light rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" 
+                  style={{ width: '42px', height: '42px', border: '1px solid #e2e8f0' }} 
+                  onClick={() => fileInputRef.current.click()} 
+                  disabled={isSending}
+                >
+                  <i className="bi bi-camera text-secondary"></i>
                 </button>
                 <div className="flex-grow-1">
-                  <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder={CHAT_CONFIG.INPUT_PLACEHOLDER} className="mb-0" />
+                  <input 
+                    className="form-control rounded-pill border-0 bg-light px-4 py-2"
+                    style={{ height: '42px' }}
+                    value={message} 
+                    onChange={(e) => setMessage(e.target.value)} 
+                    placeholder={CHAT_CONFIG.INPUT_PLACEHOLDER}
+                  />
                 </div>
-                <Button type="submit" isLoading={isSending} className="m-0 py-2 px-3">
-                  <i className="bi bi-send-fill text-white"></i>
-                </Button>
+                <button 
+                  type="submit" 
+                  disabled={isSending || !message.trim()} 
+                  className="btn btn-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" 
+                  style={{ width: '42px', height: '42px' }}
+                >
+                  {isSending ? (
+                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  ) : (
+                    <i className="bi bi-send-fill" style={{ transform: 'translateX(2px)' }}></i>
+                  )}
+                </button>
               </form>
             </div>
           </>
