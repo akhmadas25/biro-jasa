@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import useSWR from 'swr';
+import { toast } from 'react-toastify';
 
 // Import Konfigurasi & Komponen
 import { STAFF_TASK_CONFIG } from './constants';
@@ -21,14 +22,19 @@ export default function StaffTasksPage() {
   const updateStatus = async (id, newStatus) => {
     setProcessingId(id);
     try {
-      await fetch(`/api/orders/${id}`, {
+      const res = await fetch(`/api/orders/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
-      mutate();
+      if (res.ok) {
+        toast.success("Status diperbarui!");
+        mutate();
+      } else {
+        toast.error("Gagal update status.");
+      }
     } catch (e) {
-      alert("Gagal update status.");
+      toast.error("Terjadi kesalahan.");
     } finally {
       setProcessingId(null);
     }

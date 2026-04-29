@@ -99,7 +99,6 @@ export const DocumentsPanel = ({ documentUrls, onImageClick }) => {
     foto_stnk: 'Foto STNK',
     foto_ktp: 'Foto KTP',
     foto_bpkb: 'Foto BPKB',
-    gesekan_nomor: 'Gesekan Nomor',
     foto_kendaraan_4sisi: 'Foto Kendaraan',
     foto_sim_lama: 'Foto SIM Lama'
   };

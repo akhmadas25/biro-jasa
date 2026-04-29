@@ -1,8 +1,8 @@
 export const ORDER_DETAIL_CONFIG = {
   // Wording
-  TITLE: "Detail Workflow Pesanan",
+  TITLE: "Layanan",
   BADGE_STAFF: "Field Staff / Kurir",
-  
+
   // Section Titles
   SECTIONS: {
     INFO: "Informasi Berkas",

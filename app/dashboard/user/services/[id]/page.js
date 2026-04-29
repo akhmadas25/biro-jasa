@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button/Button';
 import Input from '@/components/ui/Input/Input';
 import Select from '@/components/ui/Select/Select';
 import useSWR from 'swr';
+import { toast } from 'react-toastify';
 
 import { SERVICE_FORM_CONFIG } from '@/app/dashboard/user/services/[id]/constants';
 import { DocumentFields } from '@/app/dashboard/user/services/[id]/components';
@@ -25,6 +26,7 @@ export default function ServiceFormPage({ params }) {
     documents: {}
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState([]);
 
   useEffect(() => {
     params.then(p => setServiceId(p.id));
@@ -42,6 +44,8 @@ export default function ServiceFormPage({ params }) {
           ...prev,
           documents: { ...prev.documents, [fieldName]: reader.result }
         }));
+        // Clear error for this field
+        setFormErrors(prev => prev.filter(f => f !== fieldName));
       };
       reader.readAsDataURL(file);
     }
@@ -54,6 +58,34 @@ export default function ServiceFormPage({ params }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Document Validation Logic
+    const requiredDocs = [];
+    if (currentService?.slug === 'stnk') {
+      requiredDocs.push('foto_stnk');
+      if (formData.subServiceType === 'pajak_5_tahunan') requiredDocs.push('foto_bpkb');
+    } else if (currentService?.slug === 'ganti-plat') {
+      requiredDocs.push('foto_stnk', 'foto_bpkb');
+    } else if (currentService?.slug === 'balik-nama' || currentService?.slug === 'mutasi') {
+      requiredDocs.push('foto_stnk', 'foto_bpkb', 'foto_kendaraan_4sisi');
+    } else if (currentService?.slug === 'sim' && formData.subServiceType === 'perpanjang_sim') {
+      requiredDocs.push('foto_sim_lama');
+    }
+
+    const missingFields = requiredDocs.filter(field => !formData.documents[field]);
+    setFormErrors(missingFields);
+    
+    if (missingFields.length > 0) {
+      const labels = {
+        foto_stnk: 'Foto STNK',
+        foto_bpkb: 'Foto BPKB',
+        foto_kendaraan_4sisi: 'Foto Kendaraan',
+        foto_sim_lama: 'Foto SIM Lama'
+      };
+      toast.error(`Mohon unggah dokumen wajib: ${missingFields.map(f => labels[f] || f).join(', ')}`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const { documents, ...cleanFormDetails } = formData;
@@ -63,8 +95,12 @@ export default function ServiceFormPage({ params }) {
         body: JSON.stringify({ serviceId: serviceId, formDetails: cleanFormDetails, documentUrls: documents })
       });
       const order = await res.json();
-      if (res.ok) router.push(`/dashboard/user/orders/${order.id}`);
-      else alert(order.error || 'Terjadi kesalahan.');
+      if (res.ok) {
+        toast.success('Pemesanan berhasil dibuat!');
+        router.push(`/dashboard/user/orders/${order.id}`);
+      } else {
+        toast.error(order.error || 'Terjadi kesalahan.');
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -98,6 +134,7 @@ export default function ServiceFormPage({ params }) {
             onFileChange={handleFileChange}
             config={SERVICE_FORM_CONFIG}
             documents={formData.documents}
+            errors={formErrors}
           />
 
           <Input id="notes" label={SERVICE_FORM_CONFIG.LABELS.NOTES} placeholder="Catatan tambahan..." value={formData.notes} onChange={handleChange} />

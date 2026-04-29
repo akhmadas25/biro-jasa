@@ -2,6 +2,8 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
 import BootstrapClient from "@/components/BootstrapClient";
 import Providers from "@/components/Providers";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export const metadata = {
   title: "CV BS Jasa - Layanan Cepat & Terpercaya",
@@ -20,6 +22,7 @@ export default function RootLayout({ children }) {
       <body>
         <Providers>
           <BootstrapClient />
+          <ToastContainer position="top-right" autoClose={3000} />
           {children}
         </Providers>
       </body>

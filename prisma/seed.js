@@ -29,7 +29,6 @@ async function main() {
     { name: 'STNK', slug: 'stnk', description: 'Perpanjangan STNK Tahunan & 5 Tahunan', price: 100000 },
     { name: 'Mutasi', slug: 'mutasi', description: 'Mutasi Kendaraan Antar Daerah', price: 500000 },
     { name: 'Balik Nama', slug: 'balik-nama', description: 'Proses Balik Nama Kepemilikan Kendaran', price: 400000 },
-    { name: 'Ganti Plat', slug: 'ganti-plat', description: 'Pengurusan Plat Nomor Baru', price: 200000 },
     { name: 'SIM', slug: 'sim', description: 'Pembuatan & Perpanjangan SIM A, B, C', price: 150000 },
   ];
 

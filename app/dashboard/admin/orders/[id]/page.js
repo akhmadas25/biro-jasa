@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import ImageModal from '@/components/ui/ImageModal';
+import { toast } from 'react-toastify';
 
 // Import Konfigurasi & Komponen
 import { ORDER_DETAIL_CONFIG } from './constants';
@@ -48,19 +49,25 @@ export default function AdminOrderDetailPage({ params }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (res.ok) mutate();
-      else {
+      if (res.ok) {
+        toast.success("Berhasil diperbarui!");
+        mutate();
+      } else {
         const errorData = await res.json();
-        alert(`Gagal update: ${errorData.error || 'Terjadi kesalahan'}`);
+        toast.error(`Gagal update: ${errorData.error || 'Terjadi kesalahan'}`);
       }
     } catch (err) {
-      alert("Terjadi kesalahan koneksi.");
+      toast.error("Terjadi kesalahan koneksi.");
     } finally {
       setIsUpdating(false);
     }
   };
 
   const handleSetEstimate = () => {
+    if (estItems.some(item => !item.label || !item.price)) {
+      toast.error("Mohon lengkapi semua item estimasi");
+      return;
+    }
     const total = estItems.reduce((acc, curr) => acc + (parseFloat(curr.price) || 0), 0);
     updateOrder({
       estimatedPrice: total,
@@ -70,6 +77,14 @@ export default function AdminOrderDetailPage({ params }) {
   };
 
   const handleSetAgreed = () => {
+    if (!agreedPrice || agreedPrice <= 0) {
+      toast.error("Mohon masukkan harga deal yang valid");
+      return;
+    }
+    if (!paymentInstructions) {
+      toast.error("Mohon masukkan instruksi pembayaran");
+      return;
+    }
     updateOrder({
       agreedPrice: parseFloat(agreedPrice) || 0,
       paymentInstructions,
@@ -78,6 +93,10 @@ export default function AdminOrderDetailPage({ params }) {
   };
 
   const handleSetFixed = () => {
+    if (fixedItems.some(item => !item.label || !item.price)) {
+      toast.error("Mohon lengkapi semua item rincian final");
+      return;
+    }
     const total = fixedItems.reduce((acc, curr) => acc + (parseFloat(curr.price) || 0), 0);
     updateOrder({
       fixedPrice: total,
@@ -97,7 +116,7 @@ export default function AdminOrderDetailPage({ params }) {
     <div className="container py-4">
       <header className="mb-4 pb-3 border-bottom d-flex justify-content-between align-items-center">
         <div>
-          <h2 className="fw-bold h4 m-0 text-dark">{ORDER_DETAIL_CONFIG.TITLE} • {order.id.slice(-6).toUpperCase()}</h2>
+          <h2 className="fw-bold h4 m-0 text-dark">{ORDER_DETAIL_CONFIG.TITLE} • {order.service.name}</h2>
           <p className="text-secondary small m-0 mt-1">
             Status: <span className="badge bg-primary-subtle text-primary rounded-pill px-3">{order.status}</span>
           </p>
@@ -106,15 +125,15 @@ export default function AdminOrderDetailPage({ params }) {
 
       <div className="row g-4">
         <div className="col-md-4">
-          <ClientInfoPanel 
-            order={order} 
+          <ClientInfoPanel
+            order={order}
             onImageClick={(img, title) => setModal({ show: true, img, title })}
-            config={ORDER_DETAIL_CONFIG} 
+            config={ORDER_DETAIL_CONFIG}
           />
         </div>
-        
+
         <div className="col-md-4">
-          <FinancePanel 
+          <FinancePanel
             order={order}
             estItems={estItems} setEstItems={setEstItems}
             agreedPrice={agreedPrice} setAgreedPrice={setAgreedPrice}
@@ -130,7 +149,7 @@ export default function AdminOrderDetailPage({ params }) {
         </div>
 
         <div className="col-md-4">
-          <StatusPanel 
+          <StatusPanel
             order={order}
             staffList={staffList}
             selectedStaffId={selectedStaffId}
@@ -145,11 +164,11 @@ export default function AdminOrderDetailPage({ params }) {
         </div>
       </div>
 
-      <ImageModal 
-        show={modal.show} 
-        onClose={() => setModal({ ...modal, show: false })} 
-        imageUrl={modal.img} 
-        title={modal.title} 
+      <ImageModal
+        show={modal.show}
+        onClose={() => setModal({ ...modal, show: false })}
+        imageUrl={modal.img}
+        title={modal.title}
       />
     </div>
   );
