@@ -16,7 +16,7 @@ const fetcher = url => fetch(url).then(res => res.json());
 export default function AdminReportsPage() {
   const { data: session } = useSession();
   const { data: orders, error } = useSWR('/api/orders', fetcher);
-  
+
   // 1. Data Processing
   const completedOrders = orders?.filter(o => o.status === 'COMPLETED') || [];
 
@@ -28,21 +28,13 @@ export default function AdminReportsPage() {
   const handleDownloadPDF = () => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const today = new Date().toLocaleDateString('id-ID');
-    
+
     // Header PDF
     doc.setFontSize(18);
     doc.text(REPORT_CONFIG.TITLE, 148, 20, { align: 'center' });
     doc.setFontSize(10);
     doc.text(`Tanggal Cetak: ${today}`, 148, 26, { align: 'center' });
     doc.line(20, 30, 277, 30);
-
-    // Ringkasan di PDF
-    doc.setFontSize(11);
-    doc.text('RINGKASAN KEUANGAN:', 20, 40);
-    doc.setFontSize(10);
-    doc.text(`Total Estimasi: Rp ${totalEst.toLocaleString()}`, 20, 48);
-    doc.text(`Biaya Riil (Fixed): Rp ${totalFix.toLocaleString()}`, 110, 48);
-    doc.text(`Sisa Kembalian: Rp ${totalRef.toLocaleString()}`, 200, 48);
 
     // Tabel di PDF
     const rows = completedOrders.map(order => [
@@ -95,12 +87,12 @@ export default function AdminReportsPage() {
       </header>
 
       {/* 2. Statistik (Component) */}
-      <ReportStats 
-        totalEst={totalEst} 
-        totalFix={totalFix} 
-        totalRef={totalRef} 
-        config={REPORT_CONFIG} 
-      />
+      {/* <ReportStats
+        totalEst={totalEst}
+        totalFix={totalFix}
+        totalRef={totalRef}
+        config={REPORT_CONFIG}
+      /> */}
 
       {/* 3. Tabel Data (Component) */}
       <ReportTable orders={completedOrders} />

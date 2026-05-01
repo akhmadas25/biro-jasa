@@ -7,6 +7,7 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -88,13 +89,21 @@ export default function LoginPage() {
                     <i className="bi bi-lock"></i>
                   </span>
                   <input
-                    type="password"
-                    className="form-control bg-light border-0 rounded-end-4 py-3 ps-0 shadow-none"
+                    type={showPassword ? "text" : "password"}
+                    className="form-control bg-light border-0 py-3 ps-0 shadow-none"
                     required
                     placeholder="Masukkan password Anda"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   />
+                  <button
+                    className="btn btn-light border-0 rounded-end-4 px-3 text-muted d-flex align-items-center"
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ cursor: 'pointer', backgroundColor: '#f8f9fa' }}
+                  >
+                    <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
+                  </button>
                 </div>
               </div>
 

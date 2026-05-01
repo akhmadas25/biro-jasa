@@ -34,11 +34,11 @@ export default function DashboardSidebar({ isCollapsed, onToggle }) {
       </button>
 
       <Link href="/" className={styles.logo}>
-        <img 
-          src="/logo.png" 
-          alt="Logo" 
-          width="32" 
-          height="32" 
+        <img
+          src="/logo.png"
+          alt="Logo"
+          width="32"
+          height="32"
           className={!isCollapsed ? 'me-2' : ''}
         />
         {!isCollapsed && <span>CV BS Jasa</span>}
@@ -56,7 +56,7 @@ export default function DashboardSidebar({ isCollapsed, onToggle }) {
           <>
             <NavItem href="/dashboard/admin/orders" icon="bi-list-ul" label="Semua Pesanan" />
             <NavItem href="/dashboard/admin/chats" icon="bi-chat-dots" label="Pesan / Chat" />
-            <NavItem href="/dashboard/admin/services" icon="bi-gear" label="Kelola Layanan" />
+            {/* <NavItem href="/dashboard/admin/services" icon="bi-gear" label="Kelola Layanan" /> */}
             <NavItem href="/dashboard/admin/users" icon="bi-people" label="Manajemen User" />
             <NavItem href="/dashboard/admin/reports" icon="bi-file-earmark-bar-graph" label="Laporan Keuangan" />
           </>
