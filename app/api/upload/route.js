@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
+import { v2 as cloudinary } from "cloudinary";
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(request) {
   try {
@@ -21,24 +27,19 @@ export async function POST(request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Create unique filename
-    const filename = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
-    
-    // Save to public/uploads
-    const uploadDir = join(process.cwd(), "public", "uploads");
-    
-    try {
-      await mkdir(uploadDir, { recursive: true });
-    } catch(err) {
-      // directory might exist, ignore error or log it
-    }
-    
-    const path = join(uploadDir, filename);
-    await writeFile(path, buffer);
+    // Upload to Cloudinary using upload_stream
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: "biro_jasa_uploads" },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      uploadStream.end(buffer);
+    });
 
-    const fileUrl = `/uploads/${filename}`;
-
-    return NextResponse.json({ url: fileUrl, filename: file.name }, { status: 201 });
+    return NextResponse.json({ url: uploadResult.secure_url, filename: file.name }, { status: 201 });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

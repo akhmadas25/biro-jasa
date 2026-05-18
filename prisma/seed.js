@@ -1,10 +1,29 @@
 require('dotenv/config');
 const { PrismaClient } = require('@prisma/client');
 const { PrismaMariaDb } = require('@prisma/adapter-mariadb');
-const mariadb = require('mariadb');
 const bcrypt = require('bcryptjs');
 
-const adapter = new PrismaMariaDb(process.env.DATABASE_URL);
+const dbUrl = process.env.DATABASE_URL;
+
+let adapter;
+try {
+  const url = new URL(dbUrl.replace("mysql:", "http:"));
+  adapter = new PrismaMariaDb({
+    host: url.hostname,
+    port: url.port ? parseInt(url.port) : 3306,
+    user: url.username,
+    password: decodeURIComponent(url.password),
+    database: url.pathname.substring(1).split('?')[0],
+    connectTimeout: 10000,
+    acquireTimeout: 10000,
+    ssl: {
+      rejectUnauthorized: true,
+    },
+  });
+} catch (error) {
+  console.error("Failed to parse DATABASE_URL for adapter:", error);
+  adapter = new PrismaMariaDb(dbUrl);
+}
 
 const prisma = new PrismaClient({ adapter });
 
