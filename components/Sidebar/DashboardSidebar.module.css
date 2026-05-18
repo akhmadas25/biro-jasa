@@ -169,5 +169,14 @@
 @media (max-width: 991px) {
   .sidebar {
     transform: translateX(-100%);
+    width: 280px !important;
+  }
+  
+  .expandedMobile {
+    transform: translateX(0) !important;
+  }
+
+  .toggleBtn {
+    display: none;
   }
 }

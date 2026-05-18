@@ -2,13 +2,24 @@
 import React, { useState } from 'react';
 import Button from '@/components/ui/Button/Button';
 import styles from './UploadPanel.module.css';
+import { toast } from 'react-toastify';
 
 export default function UploadPanel({ orderId, title, type, onSuccess }) {
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file) {
+      toast.error("Pilih berkas terlebih dahulu!");
+      return;
+    }
+
+    // Validation: Max 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ukuran berkas terlalu besar (Maks 5MB)");
+      return;
+    }
+
     setIsUploading(true);
     try {
       const formData = new FormData();
@@ -32,9 +43,10 @@ export default function UploadPanel({ orderId, title, type, onSuccess }) {
           body: JSON.stringify(payload)
         });
         
+        toast.success("Berhasil diunggah!");
         onSuccess();
       } else {
-        alert(uploadData.error || 'Upload gagal');
+        toast.error(uploadData.error || 'Upload gagal');
       }
     } catch(err) {
       console.error(err);

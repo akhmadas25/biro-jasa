@@ -8,37 +8,71 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     const saved = localStorage.getItem('sidebar-collapsed');
+    const isMobile = window.innerWidth < 992;
+    
     if (saved !== null) {
-      setIsCollapsed(saved === 'true');
+      setIsCollapsed(isMobile ? true : saved === 'true');
+    } else {
+      setIsCollapsed(isMobile);
     }
     setIsMounted(true);
   }, []);
 
   const toggleSidebar = () => {
-    const newState = !isCollapsed;
-    setIsCollapsed(newState);
-    localStorage.setItem('sidebar-collapsed', String(newState));
+    setIsCollapsed(!isCollapsed);
   };
 
-  const sidebarWidth = isCollapsed ? '80px' : '280px';
-
-  if (!isMounted) return null; // Avoid hydration mismatch
+  if (!isMounted) return null;
 
   return (
     <div className="d-flex min-vh-100 bg-light overflow-hidden">
+      {/* Mobile Backdrop */}
+      {!isCollapsed && isMounted && (
+        <div 
+          className="d-lg-none position-fixed top-0 start-0 w-100 h-100 bg-dark opacity-50 z-index-1000" 
+          style={{ zIndex: 999 }}
+          onClick={toggleSidebar}
+        />
+      )}
+
       <DashboardSidebar isCollapsed={isCollapsed} onToggle={toggleSidebar} />
+      
       <main 
-        className="flex-grow-1 p-4"
+        className="flex-grow-1"
         style={{ 
-          marginLeft: sidebarWidth, 
+          marginLeft: '0', 
           minWidth: 0,
           minHeight: '100vh',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           position: 'relative'
         }}
       >
-        <div className="h-100 container-fluid p-0">
-          {children}
+        {/* Mobile Header */}
+        <div className="d-lg-none bg-white border-bottom p-3 d-flex align-items-center justify-content-between sticky-top z-index-100">
+          <div className="d-flex align-items-center gap-2">
+            <button className="btn btn-light border-0 rounded-circle p-2" onClick={toggleSidebar}>
+              <i className="bi bi-list fs-4"></i>
+            </button>
+            <span className="fw-bold">CV BS Jasa</span>
+          </div>
+        </div>
+
+        <div 
+          className="p-3 p-md-4"
+          style={{ 
+            '--sidebar-width': isCollapsed ? '80px' : '280px'
+          }}
+        >
+          <style dangerouslySetInnerHTML={{ __html: `
+            @media (min-width: 992px) {
+              main {
+                margin-left: ${isCollapsed ? '80px' : '280px'} !important;
+              }
+            }
+          ` }} />
+          <div className="h-100 container-fluid p-0">
+            {children}
+          </div>
         </div>
       </main>
     </div>

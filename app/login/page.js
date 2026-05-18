@@ -7,6 +7,7 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -41,10 +42,13 @@ export default function LoginPage() {
           <div className="w-100" style={{ maxWidth: '400px' }}>
             {/* Branding Logo */}
             <Link href="/" className="d-flex align-items-center text-decoration-none mb-5 justify-content-center justify-content-lg-start">
-              <div className="bg-warning-subtle px-3 py-1 rounded-3 me-2">
-                <i className="bi bi-shield-check text-warning fs-4"></i>
-              </div>
-              <span className="fw-bold fs-4 text-dark">BIRO <span className="text-warning">JASA</span></span>
+              <img 
+                src="/logo.png" 
+                alt="CV BS Jasa Logo" 
+                height="40" 
+                className="me-2"
+              />
+              <span className="fw-bold fs-4 text-dark">CV <span className="text-warning">BS JASA</span></span>
             </Link>
 
             <div className="mb-4 text-center text-lg-start">
@@ -85,13 +89,21 @@ export default function LoginPage() {
                     <i className="bi bi-lock"></i>
                   </span>
                   <input
-                    type="password"
-                    className="form-control bg-light border-0 rounded-end-4 py-3 ps-0 shadow-none"
+                    type={showPassword ? "text" : "password"}
+                    className="form-control bg-light border-0 py-3 ps-0 shadow-none"
                     required
                     placeholder="Masukkan password Anda"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   />
+                  <button
+                    className="btn btn-light border-0 rounded-end-4 px-3 text-muted d-flex align-items-center"
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ cursor: 'pointer', backgroundColor: '#f8f9fa' }}
+                  >
+                    <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
+                  </button>
                 </div>
               </div>
 

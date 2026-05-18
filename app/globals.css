@@ -72,3 +72,24 @@ body {
   box-shadow: 0 10px 40px rgba(0,0,0,0.06);
   border: 1px solid #f1f5f9;
 }
+
+/* Custom Utilities */
+.border-dashed {
+  border-style: dashed !important;
+}
+
+.transition-all {
+  transition: all 0.3s ease;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.bg-white-70 {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.backdrop-blur {
+  backdrop-filter: blur(10px);
+}

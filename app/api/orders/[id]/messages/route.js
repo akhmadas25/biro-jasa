@@ -12,10 +12,10 @@ export async function POST(request, { params }) {
 
     const { id } = await params; // order ID
     const body = await request.json();
-    const { content } = body;
+    const { content, imageUrl } = body;
 
-    if (!content) {
-      return NextResponse.json({ error: "Message content cannot be empty" }, { status: 400 });
+    if (!content && !imageUrl) {
+      return NextResponse.json({ error: "Message content or image required" }, { status: 400 });
     }
 
     // Verify order exists and user has access
@@ -30,7 +30,8 @@ export async function POST(request, { params }) {
 
     const message = await prisma.message.create({
       data: {
-        content,
+        content: content || "",
+        imageUrl,
         orderId: id,
         userId: session.user.id,
       },

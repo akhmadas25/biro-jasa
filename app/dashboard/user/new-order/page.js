@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import Select from '@/components/ui/Select/Select';
 import Button from '@/components/ui/Button/Button';
 
+// Import Konfigurasi
+import { NEW_ORDER_CONFIG } from './constants';
+
 const fetcher = url => fetch(url).then(res => res.json());
 
 export default function NewOrderPage() {
@@ -20,8 +23,8 @@ export default function NewOrderPage() {
     }
   };
 
-  if (error) return <div>Gagal memuat daftar layanan.</div>;
-  if (!services) return <div>Memuat layanan...</div>;
+  if (error) return <div className="p-5 text-center text-danger fw-bold">{NEW_ORDER_CONFIG.ERROR_TEXT}</div>;
+  if (!services) return <div className="p-5 text-center text-secondary">{NEW_ORDER_CONFIG.LOADING_TEXT}</div>;
 
   const options = services.map(s => ({
     value: s.id,
@@ -31,11 +34,11 @@ export default function NewOrderPage() {
   return (
     <div className="container py-5">
       <div className="card shadow-sm border-0 mx-auto p-4 p-md-5 rounded-4" style={{ maxWidth: '600px' }}>
-        <h2 className="fw-bold mb-2 text-dark">Pesan Layanan Baru</h2>
-        <p className="text-secondary mb-4">Pilih jenis layanan yang Anda butuhkan untuk memulai pengurusan berkas.</p>
+        <h2 className="fw-bold mb-2 text-dark">{NEW_ORDER_CONFIG.TITLE}</h2>
+        <p className="text-secondary mb-4">{NEW_ORDER_CONFIG.SUBTITLE}</p>
         
         <Select 
-          label="Pilih Jenis Layanan"
+          label={NEW_ORDER_CONFIG.LABEL_SELECT}
           options={options}
           value={selectedServiceId}
           onChange={(e) => setSelectedServiceId(e.target.value)}
@@ -47,7 +50,7 @@ export default function NewOrderPage() {
           disabled={!selectedServiceId}
           className="w-100 mt-2"
         >
-          Lanjut Isi Formulir <i className="bi bi-arrow-right ms-2"></i>
+          {NEW_ORDER_CONFIG.BUTTON_TEXT} <i className="bi bi-arrow-right ms-2"></i>
         </Button>
       </div>
     </div>

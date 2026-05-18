@@ -23,14 +23,25 @@ export default function DashboardSidebar({ isCollapsed, onToggle }) {
   };
 
   return (
-    <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsedSidebar : ''}`}>
+    <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsedSidebar : styles.expandedMobile}`}>
       <button className={styles.toggleBtn} onClick={onToggle}>
         <i className={`bi ${isCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'}`}></i>
       </button>
 
+      {/* Mobile Close Button */}
+      <button className="d-lg-none btn btn-link text-white position-absolute top-0 end-0 m-3 p-0" onClick={onToggle}>
+        <i className="bi bi-x-lg fs-4"></i>
+      </button>
+
       <Link href="/" className={styles.logo}>
-        <i className="bi bi-shield-check"></i>
-        {!isCollapsed && <span>BIRO JASA</span>}
+        <img
+          src="/logo.png"
+          alt="Logo"
+          width="32"
+          height="32"
+          className={!isCollapsed ? 'me-2' : ''}
+        />
+        {!isCollapsed && <span>CV BS Jasa</span>}
       </Link>
 
       <nav className={styles.nav}>
@@ -45,8 +56,9 @@ export default function DashboardSidebar({ isCollapsed, onToggle }) {
           <>
             <NavItem href="/dashboard/admin/orders" icon="bi-list-ul" label="Semua Pesanan" />
             <NavItem href="/dashboard/admin/chats" icon="bi-chat-dots" label="Pesan / Chat" />
-            <NavItem href="/dashboard/admin/services" icon="bi-gear" label="Kelola Layanan" />
+            {/* <NavItem href="/dashboard/admin/services" icon="bi-gear" label="Kelola Layanan" /> */}
             <NavItem href="/dashboard/admin/users" icon="bi-people" label="Manajemen User" />
+            <NavItem href="/dashboard/admin/reports" icon="bi-file-earmark-bar-graph" label="Laporan Keuangan" />
           </>
         )}
 

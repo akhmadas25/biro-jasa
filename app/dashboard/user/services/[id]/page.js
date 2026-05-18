@@ -1,10 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button/Button';
 import Input from '@/components/ui/Input/Input';
 import Select from '@/components/ui/Select/Select';
+import useSWR from 'swr';
+import { toast } from 'react-toastify';
+
+import { SERVICE_FORM_CONFIG } from '@/app/dashboard/user/services/[id]/constants';
+import { DocumentFields } from '@/app/dashboard/user/services/[id]/components';
+
+const fetcher = url => fetch(url).then(res => res.json());
 
 export default function ServiceFormPage({ params }) {
   const router = useRouter();
@@ -14,14 +21,35 @@ export default function ServiceFormPage({ params }) {
     phoneNumber: '',
     address: '',
     serviceTypePriority: 'standard',
-    notes: ''
+    notes: '',
+    subServiceType: '',
+    documents: {}
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState([]);
 
-  // Ideally, serviceId is fetched from params or DB, here we mock simple extraction
-  React.useEffect(() => {
+  useEffect(() => {
     params.then(p => setServiceId(p.id));
   }, [params]);
+
+  const { data: services } = useSWR('/api/services', fetcher);
+  const currentService = services?.find(s => s.id === serviceId);
+
+  const handleFileChange = (e, fieldName) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          documents: { ...prev.documents, [fieldName]: reader.result }
+        }));
+        // Clear error for this field
+        setFormErrors(prev => prev.filter(f => f !== fieldName));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -30,24 +58,48 @@ export default function ServiceFormPage({ params }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    
+    // Document Validation Logic
+    const requiredDocs = [];
+    if (currentService?.slug === 'stnk') {
+      requiredDocs.push('foto_stnk');
+      if (formData.subServiceType === 'pajak_5_tahunan') requiredDocs.push('foto_bpkb');
+    } else if (currentService?.slug === 'ganti-plat') {
+      requiredDocs.push('foto_stnk', 'foto_bpkb');
+    } else if (currentService?.slug === 'balik-nama' || currentService?.slug === 'mutasi') {
+      requiredDocs.push('foto_stnk', 'foto_bpkb', 'foto_kendaraan_4sisi');
+    } else if (currentService?.slug === 'sim' && formData.subServiceType === 'perpanjang_sim') {
+      requiredDocs.push('foto_sim_lama');
+    }
 
+    const missingFields = requiredDocs.filter(field => !formData.documents[field]);
+    setFormErrors(missingFields);
+    
+    if (missingFields.length > 0) {
+      const labels = {
+        foto_stnk: 'Foto STNK',
+        foto_bpkb: 'Foto BPKB',
+        foto_kendaraan_4sisi: 'Foto Kendaraan',
+        foto_sim_lama: 'Foto SIM Lama'
+      };
+      toast.error(`Mohon unggah dokumen wajib: ${missingFields.map(f => labels[f] || f).join(', ')}`);
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
+      const { documents, ...cleanFormDetails } = formData;
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          serviceId: serviceId, // Must match an ID in DB in fully working app
-          formDetails: formData
-        })
+        body: JSON.stringify({ serviceId: serviceId, formDetails: cleanFormDetails, documentUrls: documents })
       });
-      
       const order = await res.json();
       if (res.ok) {
-        // Redirect to chat/negotiation area
+        toast.success('Pemesanan berhasil dibuat!');
         router.push(`/dashboard/user/orders/${order.id}`);
       } else {
-        alert(order.error || 'Terjadi kesalahan.');
+        toast.error(order.error || 'Terjadi kesalahan.');
       }
     } catch (err) {
       console.error(err);
@@ -57,95 +109,41 @@ export default function ServiceFormPage({ params }) {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.glassCard}>
-        <h1 style={styles.title}>Lengkapi Data Formulir</h1>
-        <p style={styles.subtitle}>Berikan detail dasar agar Admin dapat memberikan estimasi harga yang akurat.</p>
-        
+    <div className="container py-4 py-md-5 d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
+      <div className="card shadow-sm border-0 rounded-4 p-4 p-md-5 bg-white-70 backdrop-blur" style={{ maxWidth: '600px', width: '100%' }}>
+        <h2 className="fw-bold mb-2 text-center text-dark h4 h2-md">{SERVICE_FORM_CONFIG.TITLE}</h2>
+        <p className="text-secondary text-center small mb-4">{SERVICE_FORM_CONFIG.SUBTITLE}</p>
+
         <form onSubmit={handleSubmit}>
-          <Input 
-            id="fullName"
-            label="Nama Lengkap"
-            placeholder="Masukkan nama sesuai indentitas"
-            value={formData.fullName}
-            onChange={handleChange}
-            required
-          />
-          
-          <Input 
-            id="phoneNumber"
-            label="Nomor WhatsApp"
-            type="tel"
-            placeholder="0812xxxxxx"
-            value={formData.phoneNumber}
-            onChange={handleChange}
-            required
+          <Input id="fullName" label={SERVICE_FORM_CONFIG.LABELS.NAME} placeholder="Contoh: Budi Santoso" value={formData.fullName} onChange={handleChange} required />
+          <Input id="phoneNumber" label={SERVICE_FORM_CONFIG.LABELS.PHONE} type="tel" placeholder="0812xxxxxx" value={formData.phoneNumber} onChange={handleChange} required />
+
+          {currentService?.slug === 'stnk' && (
+            <Select id="subServiceType" label="Pilih Jenis Pajak" value={formData.subServiceType} onChange={handleChange}
+              options={[{ label: 'Pilih...', value: '' }, { label: 'Pajak Tahunan', value: 'pajak_tahunan' }, { label: 'Pajak 5 Tahunan', value: 'pajak_5_tahunan' }]} required />
+          )}
+
+          {currentService?.slug === 'sim' && (
+            <Select id="subServiceType" label="Pilih Jenis SIM" value={formData.subServiceType} onChange={handleChange}
+              options={[{ label: 'Pilih...', value: '' }, { label: 'SIM Baru', value: 'sim_baru' }, { label: 'Perpanjang SIM', value: 'perpanjang_sim' }]} required />
+          )}
+
+          <DocumentFields
+            slug={currentService?.slug}
+            subType={formData.subServiceType}
+            onFileChange={handleFileChange}
+            config={SERVICE_FORM_CONFIG}
+            documents={formData.documents}
+            errors={formErrors}
           />
 
-          <Select 
-            id="serviceTypePriority"
-            label="Prioritas Layanan"
-            value={formData.serviceTypePriority}
-            onChange={handleChange}
-            options={[
-              { label: 'Standar (Sesuai antrean)', value: 'standard' },
-              { label: 'Ekspres (Lebih Cepat)', value: 'express' }
-            ]}
-          />
+          <Input id="notes" label={SERVICE_FORM_CONFIG.LABELS.NOTES} placeholder="Catatan tambahan..." value={formData.notes} onChange={handleChange} />
 
-          <Input 
-            id="notes"
-            label="Catatan Tambahan (Opsional)"
-            placeholder="Misal: Perpanjang STNK mobil tahun 2018..."
-            value={formData.notes}
-            onChange={handleChange}
-          />
-          
-          <div style={styles.actions}>
-            <Button type="submit" isLoading={isSubmitting} className="w-full">
-              Kirim & Lanjut ke Negosiasi
-            </Button>
-          </div>
+          <Button type="submit" isLoading={isSubmitting} className="w-100 mt-3 fw-bold py-3">
+            {SERVICE_FORM_CONFIG.BUTTON_TEXT}
+          </Button>
         </form>
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '2rem',
-    background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)', // Sleek background
-  },
-  glassCard: {
-    width: '100%',
-    maxWidth: '500px',
-    background: 'rgba(255, 255, 255, 0.7)',
-    backdropFilter: 'blur(20px)',
-    borderRadius: '24px',
-    padding: '3rem 2rem',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
-    border: '1px solid rgba(255,255,255,0.4)',
-  },
-  title: {
-    fontSize: '1.8rem',
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: '0.5rem',
-    textAlign: 'center'
-  },
-  subtitle: {
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: '2.5rem',
-    fontSize: '0.95rem',
-    lineHeight: '1.5'
-  },
-  actions: {
-    marginTop: '2rem'
-  }
-};

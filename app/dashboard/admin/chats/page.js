@@ -5,6 +5,11 @@ import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import Button from '@/components/ui/Button/Button';
 import Input from '@/components/ui/Input/Input';
+import ImageModal from '@/components/ui/ImageModal';
+
+// Import Konfigurasi & Komponen
+import { CHAT_CONFIG } from './constants';
+import { ChatListItem, MessageBubble, QuickReplies } from './components';
 
 const fetcher = url => fetch(url).then(res => res.json());
 
@@ -13,145 +18,152 @@ export default function AdminChatsPage() {
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [modal, setModal] = useState({ show: false, img: '', title: '' });
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  // Poll list of chats
   const { data: chats, mutate: mutateChats } = useSWR('/api/admin/chats', fetcher, { refreshInterval: 5000 });
-
-  // Poll individual chat if selected
   const { data: currentOrder, mutate: mutateCurrentOrder } = useSWR(
     selectedOrderId ? `/api/orders/${selectedOrderId}` : null,
     fetcher,
     { refreshInterval: 1500 }
   );
 
+  const chatsList = Array.isArray(chats) ? chats : [];
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentOrder?.messages]);
 
-  const quickReplies = [
-    "Halo, berkas sedang kami proses.",
-    "Mohon lakukan pembayaran sesuai instruksi di atas.",
-    "Pembayaran sudah kami terima, segera kami proses ke lapangan.",
-    "Berkas sudah selesai, silakan pilih metode pengambilan di dashboard Anda.",
-    "Ada kendala pada berkas Anda, mohon hubungi kami kembali."
-  ];
-
-  const sendMessage = async (content) => {
+  const sendMessage = async (payload) => {
     if (!selectedOrderId) return;
-    const textToSend = typeof content === 'string' ? content : message;
-    if (!textToSend.trim()) return;
+    let body = typeof payload === 'string' ? { content: payload } : (payload?.imageUrl ? { imageUrl: payload.imageUrl } : null);
+    if (!body) {
+      if (!message.trim()) return;
+      body = { content: message };
+    }
 
     setIsSending(true);
     await fetch(`/api/orders/${selectedOrderId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: textToSend })
+      body: JSON.stringify(body)
     });
 
-    if (typeof content !== 'string') setMessage('');
+    if (!payload) setMessage('');
     setIsSending(false);
     mutateCurrentOrder();
     mutateChats();
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => sendMessage({ imageUrl: reader.result });
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
-    <div className="d-flex w-100 bg-white rounded-4 shadow-sm border overflow-hidden" style={{ height: 'calc(100vh - 5rem)', minWidth: 0 }}>
-      {/* Sidebar List Chats */}
-      <div className="border-end d-flex flex-column bg-white flex-shrink-0" style={{ width: '280px' }}>
-        <h3 className="p-4 m-0 h5 fw-bold border-bottom">Inbox Chat</h3>
+    <div className="d-flex flex-column flex-lg-row w-100 bg-white rounded-4 shadow-sm border overflow-hidden" style={{ height: 'calc(100vh - 10rem)', minHeight: '500px' }}>
+      {/* 1. Sidebar List */}
+      <div id="admin-chat-sidebar" className="border-end d-flex flex-column bg-white flex-shrink-0">
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media (min-width: 992px) {
+            #admin-chat-sidebar { width: 300px !important; }
+          }
+          @media (max-width: 991px) {
+            #admin-chat-sidebar { height: 35% !important; border-bottom: 1px solid #dee2e6; border-right: none !important; }
+          }
+        ` }} />
+        <h3 className="p-3 m-0 h6 fw-bold border-bottom text-uppercase text-secondary tracking-wider">{CHAT_CONFIG.TITLE}</h3>
         <div className="flex-grow-1 overflow-auto">
-          {chats?.map(chat => (
-            <div 
-              key={chat.id} 
+          {chatsList.map(chat => (
+            <ChatListItem
+              key={chat.id}
+              chat={chat}
+              active={selectedOrderId === chat.id}
               onClick={() => setSelectedOrderId(chat.id)}
-              className={`p-3 border-bottom cursor-pointer transition-all position-relative ${selectedOrderId === chat.id ? 'bg-primary-subtle' : ''}`}
-            >
-              {selectedOrderId === chat.id && (
-                <div className="position-absolute start-0 top-0 bottom-0 bg-primary" style={{ width: '4px' }}></div>
-              )}
-              <div className="d-flex justify-content-between align-items-center mb-1">
-                <span className="fw-bold small">{chat.user?.name || 'User'}</span>
-                <span className="badge bg-primary-subtle text-primary x-small" style={{ fontSize: '0.7rem' }}>{chat.service?.name}</span>
-              </div>
-              <p className="text-secondary small mb-1 text-truncate">
-                {chat.messages?.[0]?.content}
-              </p>
-              <span className="badge bg-light text-secondary border small">{chat.status}</span>
-            </div>
+            />
           ))}
-          {chats?.length === 0 && <p className="p-4 text-secondary small">Belum ada chat aktif.</p>}
+          {chatsList.length === 0 && (
+            <p className="p-4 text-center text-secondary small opacity-50 italic">{CHAT_CONFIG.EMPTY_INBOX}</p>
+          )}
         </div>
       </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-grow-1 d-flex flex-column bg-light-subtle" style={{ minWidth: 0 }}>
+      {/* 2. Main Chat Area */}
+      <div className="flex-grow-1 d-flex flex-column bg-light-subtle overflow-hidden">
         {selectedOrderId ? (
           <>
-            <header className="p-3 px-4 border-bottom bg-white d-flex align-items-center justify-content-between">
+            <header className="p-3 px-4 border-bottom bg-white d-flex align-items-center justify-content-between flex-shrink-0">
               <div>
                 <h6 className="m-0 fw-bold">{currentOrder?.user?.name}</h6>
-                <small className="text-secondary">Order ID: {selectedOrderId.slice(-6).toUpperCase()} • {currentOrder?.service?.name}</small>
+                <small className="text-secondary small" style={{ fontSize: '0.7rem' }}>Order ID: {selectedOrderId.slice(-6).toUpperCase()} • {currentOrder?.service?.name}</small>
               </div>
             </header>
 
-            <div className="flex-grow-1 p-4 overflow-auto d-flex flex-column gap-3">
-              {currentOrder?.messages?.map(msg => {
-                const isMe = session?.user?.id === msg.userId;
-                return (
-                  <div key={msg.id} className={`d-flex ${isMe ? 'justify-content-end' : 'justify-content-start'}`}>
-                    <div
-                      className={`p-3 rounded-4 shadow-sm small ${isMe ? 'bg-primary text-white' : 'bg-white text-dark'}`}
-                      style={{ maxWidth: '75%' }}
-                    >
-                      <small className={`d-block mb-1 fw-bold ${isMe ? 'text-white-50' : 'text-primary'}`} style={{ fontSize: '0.65rem' }}>
-                        {isMe ? 'Anda (Admin)' : msg.user?.name}
-                      </small>
-                      {msg.content}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex-grow-1 p-3 p-md-4 overflow-auto d-flex flex-column gap-3">
+              {currentOrder?.messages?.map(msg => (
+                <MessageBubble
+                  key={msg.id}
+                  msg={msg}
+                  isMe={session?.user?.id === msg.userId}
+                  labels={CHAT_CONFIG.LABELS}
+                  onImageClick={(img, title) => setModal({ show: true, img, title })}
+                />
+              ))}
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-4 bg-white border-top">
-              {/* Quick Replies */}
-              <div className="d-flex gap-2 overflow-auto pb-3 mb-3 border-bottom no-scrollbar" style={{ scrollbarWidth: 'none' }}>
-                {quickReplies.map((reply, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => sendMessage(reply)}
-                    className="btn btn-sm btn-outline-secondary border-light-subtle bg-light text-nowrap rounded-pill px-3"
-                  >
-                    {reply}
-                  </button>
-                ))}
-              </div>
+            <div className="p-3 p-md-4 bg-white border-top flex-shrink-0">
+              <QuickReplies replies={CHAT_CONFIG.QUICK_REPLIES} onReplyClick={(reply) => sendMessage(reply)} />
 
-              <form onSubmit={(e) => e.preventDefault()} className="d-flex gap-3 align-items-center">
+              <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="d-flex gap-2 align-items-center w-100">
+                <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleImageUpload} />
+                <button 
+                  type="button" 
+                  className="btn btn-light rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" 
+                  style={{ width: '42px', height: '42px', border: '1px solid #e2e8f0' }} 
+                  onClick={() => fileInputRef.current.click()} 
+                  disabled={isSending}
+                >
+                  <i className="bi bi-camera text-secondary"></i>
+                </button>
                 <div className="flex-grow-1">
-                  <Input
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Ketik balasan..."
-                    className="mb-0"
-                    style={{ marginBottom: 0 }}
+                  <input 
+                    className="form-control rounded-pill border-0 bg-light px-4 py-2"
+                    style={{ height: '42px' }}
+                    value={message} 
+                    onChange={(e) => setMessage(e.target.value)} 
+                    placeholder={CHAT_CONFIG.INPUT_PLACEHOLDER}
                   />
                 </div>
-                <Button onClick={() => sendMessage()} isLoading={isSending} className="m-0">
-                  <i className="bi bi-send-fill"></i>
-                </Button>
+                <button 
+                  type="submit" 
+                  disabled={isSending || !message.trim()} 
+                  className="btn btn-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" 
+                  style={{ width: '42px', height: '42px' }}
+                >
+                  {isSending ? (
+                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  ) : (
+                    <i className="bi bi-send-fill" style={{ transform: 'translateX(2px)' }}></i>
+                  )}
+                </button>
               </form>
             </div>
           </>
         ) : (
-          <div className="flex-grow-1 d-flex flex-column align-items-center justify-content-center text-secondary">
-            <i className="bi bi-chat-dots display-4 mb-3 opacity-25"></i>
-            <p className="small">Pilih salah satu chat untuk membalas pesan pelanggan.</p>
+          <div className="flex-grow-1 d-flex flex-column align-items-center justify-content-center text-secondary opacity-50">
+            <i className="bi bi-chat-dots display-4 mb-3"></i>
+            <p className="small">{CHAT_CONFIG.EMPTY_PICK_CHAT}</p>
           </div>
         )}
       </div>
+
+      <ImageModal show={modal.show} onClose={() => setModal({ ...modal, show: false })} imageUrl={modal.img} title={modal.title} />
     </div>
   );
 }

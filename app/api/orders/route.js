@@ -11,7 +11,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { serviceId, formDetails } = body;
+    const { serviceId, formDetails, documentUrls } = body;
 
     if (!serviceId) {
       return NextResponse.json({ error: "Service ID is required" }, { status: 400 });
@@ -22,6 +22,7 @@ export async function POST(request) {
         userId: session.user.id,
         serviceId: serviceId,
         formDetails: formDetails || {},
+        documentUrls: documentUrls || {},
         status: "WAITING_ESTIMATE",
       },
     });
@@ -41,27 +42,58 @@ export async function GET(request) {
     }
 
     let orders;
+    const orderSelect = {
+      id: true,
+      userId: true,
+      serviceId: true,
+      formDetails: true,
+      estimatedPrice: true,
+      agreedPrice: true,
+      fixedPrice: true, // Tambahkan ini
+      fixedBreakdown: true, // Tambahkan ini
+      status: true,
+      paymentProofUrl: true,
+      paymentStatus: true,
+      // NOT selecting documentUrls here to avoid huge payload/memory issues
+      staffId: true,
+      deliveryMethod: true,
+      deliveryAddress: true,
+      paymentInstructions: true,
+      createdAt: true,
+      updatedAt: true,
+      user: true,
+      service: true,
+      staff: true
+    };
     
     if (session.user.role === "SUPERADMIN") {
       orders = await prisma.order.findMany({
-        include: { user: true, service: true, staff: true },
+        select: orderSelect,
         orderBy: { createdAt: "desc" },
       });
     } else if (session.user.role === "STAFF") {
       orders = await prisma.order.findMany({
         where: { staffId: session.user.id },
-        include: { user: true, service: true },
+        select: orderSelect,
         orderBy: { createdAt: "desc" },
       });
     } else {
       orders = await prisma.order.findMany({
         where: { userId: session.user.id },
-        include: { service: true, staff: true },
+        select: orderSelect,
         orderBy: { createdAt: "desc" },
       });
     }
 
-    return NextResponse.json(orders);
+    const safeOrders = orders.map(order => {
+      if (order.formDetails && typeof order.formDetails === 'object' && order.formDetails.documents) {
+        const { documents, ...restDetails } = order.formDetails;
+        return { ...order, formDetails: restDetails };
+      }
+      return order;
+    });
+
+    return NextResponse.json(safeOrders);
   } catch (error) {
     console.error("Get orders error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
